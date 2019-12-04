@@ -19,15 +19,28 @@ function logger(req, res, next) {
 
 function gatekeeper(req,res,next) {
   
-  res.send(req.headers)
+  const password = req.headers.password
 
-  if (req.headers.StartsWith("mellon")) {
+  if (password && password.toLowerCase() ==="mellon") {
     next()
   }else{
-    res.send(404)
+    res.status(404).json({ you: " you shall not pass"})
   }
   
 }
+
+
+const checkRole = (role) => {
+  return function(req,res,next) {
+    if(role && role === req.headers.role) {
+      next()
+    }else {
+      res.status(403).json({ message: "must have right role"})
+    }
+  }
+}
+
+
 
 //middleware
 server.use(helmet())
@@ -38,7 +51,7 @@ server.use(logger);
 //endpoints
 
 // helemt can be use for speific endpoints with /api/hubs
-server.use('/api/hubs',helmet(), hubsRouter);
+server.use('/api/hubs',helmet(), checkRole('admin'), hubsRouter);
 
 server.get('/', (req, res) => {
   const nameInsert = (req.name) ? ` ${req.name}` : '';
@@ -54,7 +67,7 @@ server.get('/echo', (req, res) => {
 })
 
 // can use the middle helmet just for one enpoint invoking witihin the get
-server.get('/area51', helmet() , gatekeeper, (req, res) => {
+server.get('/area51', helmet() , gatekeeper, checkRole('agent'),(req, res) => {
   res.send(req.headers)
 })
 module.exports = server;
